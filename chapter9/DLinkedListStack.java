@@ -1,6 +1,7 @@
 package chapter9;
 
 import my.util.DLinkedList;
+import java.util.EmptyStackException;
 
 public class DLinkedListStack<T> implements Stack<T> {
 
@@ -19,14 +20,19 @@ public class DLinkedListStack<T> implements Stack<T> {
     @Override
     public T pop() throws Exception {
         // TODO
-       
+        if (isEmpty()) {
+            throw new EmptyStackException();
+        }
         return list.removeLast().getData();
     }
 
     @Override
     public T top() throws Exception {
         // TODO
-        return list.get(list.size()-1).getData();
+        if (isEmpty()) {
+            throw new EmptyStackException();
+        }
+        return list.get(list.size() - 1).getData();
     }
 
     @Override

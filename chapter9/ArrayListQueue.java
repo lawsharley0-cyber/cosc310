@@ -1,6 +1,7 @@
 package chapter9;
 
 import java.util.ArrayList;
+import java.util.EmptyStackException;
 
 public class ArrayListQueue<T> implements Queue<T> {
 
@@ -29,7 +30,11 @@ public class ArrayListQueue<T> implements Queue<T> {
     @Override
     public T dequeue() throws Exception {
         // TODO - check for empty queue
+        if (isEmpty()) {
+            throw new EmptyStackException();
+        }
         T item = buffer.get(head);
+        buffer.set(head, null);
         size--;
         head = (head + 1) % buffer.size();
         return item;
@@ -38,6 +43,9 @@ public class ArrayListQueue<T> implements Queue<T> {
     @Override
     public T front() throws Exception {
         // TODO
+        if (isEmpty()) {
+            throw new EmptyStackException();
+        }
         return buffer.get(head);
     }
 
@@ -56,18 +64,18 @@ public class ArrayListQueue<T> implements Queue<T> {
         if (size < buffer.size())
             return;
 
-        // resize and recenter
         int oldcap = buffer.size();
-        ArrayList<T> bigbuffer = new ArrayList<>(oldcap*2);
-        for (int i = 0; i < oldcap*2; i++) {
-            bigbuffer.add(null);    
+        ArrayList<T> bigbuffer = new ArrayList<>(oldcap * 2);
+        for (int i = 0; i < oldcap * 2; i++) {
+            bigbuffer.add(null);
         }
-        for (int i=0; i<oldcap; i++) {
-            bigbuffer.set(i,buffer.get(head));
-            head = (head + 1) % oldcap;
+
+        for (int i = 0; i < size; i++) {
+            bigbuffer.set(i, buffer.get((head + i) % oldcap));
         }
-        buffer = bigbuffer; // the "old" swaperoo trick
+
+        buffer = bigbuffer;
         head = 0;
-        tail = oldcap;
+        tail = size;
     }
 }

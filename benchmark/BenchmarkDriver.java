@@ -5,6 +5,7 @@ import chapter9.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.function.Supplier;
 
 public class BenchmarkDriver {
 
@@ -23,24 +24,24 @@ public class BenchmarkDriver {
 
         sanity();
 
-        runStackBench("ArrayListStack", new chapter9.ArrayListStack<Integer>());
-        runStackBench("DLinkedListStack", new chapter9.DLinkedListStack<Integer>());
+        runStackBench("ArrayListStack", ArrayListStack::new);
+        runStackBench("DLinkedListStack", DLinkedListStack::new);
 
-        runQueueBench("ArrayListQueue", new chapter9.ArrayListQueue<Integer>());
-        runQueueBench("DLinkedListQueue", new chapter9.DLinkedListQueue<Integer>());
+        runQueueBench("ArrayListQueue", ArrayListQueue::new);
+        runQueueBench("DLinkedListQueue", DLinkedListQueue::new);
 
-        runPQBench("SortedArrayListPQ", new chapter9.SortedArrayListPriorityQueue<Integer>());
-        runPQBench("SortedDLinkedListPQ", new chapter9.SortedDLinkedListPriorityQueue<Integer>());
-        runPQBench("BinaryHeapPQ", new chapter9.BinaryHeapPriorityQueue<Integer>());
+        runPQBench("SortedArrayListPQ", SortedArrayListPriorityQueue::new);
+        runPQBench("SortedDLinkedListPQ", SortedDLinkedListPriorityQueue::new);
+        runPQBench("BinaryHeapPQ", BinaryHeapPriorityQueue::new);
     }
 
     // -----------------------------
-    // SANITY
+    // SANITY (unchanged)
     // -----------------------------
     private static void sanity() throws Exception {
         ArrayList<Stack<Integer>> stacks = new ArrayList<>();
-        stacks.add(new chapter9.ArrayListStack<Integer>());
-        stacks.add(new chapter9.DLinkedListStack<Integer>());
+        stacks.add(new ArrayListStack<>());
+        stacks.add(new DLinkedListStack<>());
 
         for (Stack<Integer> s : stacks) {
             for (int i = 0; i < 10; i++) s.push(i);
@@ -53,8 +54,8 @@ public class BenchmarkDriver {
         }
 
         ArrayList<Queue<Integer>> queues = new ArrayList<>();
-        queues.add(new chapter9.ArrayListQueue<>());
-        queues.add(new chapter9.DLinkedListQueue<>());
+        queues.add(new ArrayListQueue<>());
+        queues.add(new DLinkedListQueue<>());
 
         for (Queue<Integer> q : queues) {
             for (int i = 0; i < 10; i++) q.enqueue(i);
@@ -67,9 +68,9 @@ public class BenchmarkDriver {
         }
 
         ArrayList<PriorityQueue<Integer>> pqs = new ArrayList<>();
-        pqs.add(new chapter9.SortedArrayListPriorityQueue<>());
-        pqs.add(new chapter9.SortedDLinkedListPriorityQueue<>());
-        pqs.add(new chapter9.BinaryHeapPriorityQueue<>());
+        pqs.add(new SortedArrayListPriorityQueue<>());
+        pqs.add(new SortedDLinkedListPriorityQueue<>());
+        pqs.add(new BinaryHeapPriorityQueue<>());
 
         for (PriorityQueue<Integer> pq : pqs) {
             pq.enqueue(5, 50);
@@ -82,54 +83,56 @@ public class BenchmarkDriver {
             if (!pq.isEmpty()) throw new RuntimeException("PQ empty failed");
         }
 
-        System.out.println("Sanity checks: OK");
-        System.out.println();
+        System.out.println("Sanity checks: OK\n");
     }
 
     // -----------------------------
-    // BENCHMARKS
+    // BENCHMARK RUNNERS
     // -----------------------------
-    private static void runStackBench(String name, Stack<Integer> stack) throws Exception {
+    private static void runStackBench(String name, Supplier<Stack<Integer>> factory) throws Exception {
         System.out.println("== Stack: " + name + " ==");
 
         bench("Workload1 bulk push+pop",
-                (warm) -> workloadStackBulk(stack, warm ? WARMUP_OPS : MEASURE_OPS));
+                (warm) -> workloadStackBulk(factory.get(), warm ? WARMUP_OPS : MEASURE_OPS));
 
         bench("Workload2 mixed steady-state",
-                (warm) -> workloadStackMixed(stack, warm ? WARMUP_OPS : MEASURE_OPS));
+                (warm) -> workloadStackMixed(factory.get(), warm ? WARMUP_OPS : MEASURE_OPS));
 
         System.out.println();
     }
 
-    private static void runQueueBench(String name, Queue<Integer> queue) throws Exception {
+    private static void runQueueBench(String name, Supplier<Queue<Integer>> factory) throws Exception {
         System.out.println("== Queue: " + name + " ==");
 
         bench("Workload1 bulk enq+deq",
-                (warm) -> workloadQueueBulk(queue, warm ? WARMUP_OPS : MEASURE_OPS));
+                (warm) -> workloadQueueBulk(factory.get(), warm ? WARMUP_OPS : MEASURE_OPS));
 
         bench("Workload2 mixed steady-state",
-                (warm) -> workloadQueueMixed(queue, warm ? WARMUP_OPS : MEASURE_OPS));
+                (warm) -> workloadQueueMixed(factory.get(), warm ? WARMUP_OPS : MEASURE_OPS));
 
         System.out.println();
     }
 
-    private static void runPQBench(String name, PriorityQueue<Integer> pq) throws Exception {
+    private static void runPQBench(String name, Supplier<PriorityQueue<Integer>> factory) throws Exception {
         System.out.println("== PriorityQueue: " + name + " ==");
 
         bench("Workload1 bulk enq+deq (uniform priorities)",
-                (warm) -> workloadPQBulk(pq, warm ? WARMUP_OPS : MEASURE_OPS, false));
+                (warm) -> workloadPQBulk(factory.get(), warm ? WARMUP_OPS : MEASURE_OPS, false));
 
         bench("Workload2 mixed steady-state (uniform priorities)",
-                (warm) -> workloadPQMixed(pq, warm ? WARMUP_OPS : MEASURE_OPS, false));
+                (warm) -> workloadPQMixed(factory.get(), warm ? WARMUP_OPS : MEASURE_OPS, false));
 
         bench("Workload3 skewed priorities (bulk)",
-                (warm) -> workloadPQBulk(pq, warm ? WARMUP_OPS : MEASURE_OPS, true));
+                (warm) -> workloadPQBulk(factory.get(), warm ? WARMUP_OPS : MEASURE_OPS, true));
 
         System.out.println();
     }
 
+    // -----------------------------
+    // BENCH CORE (unchanged logic)
+    // -----------------------------
     private static void bench(String label, BenchRun run) throws Exception {
-        // warmup
+
         for (int i = 0; i < 2; i++) run.run(true);
 
         long[] times = new long[TRIALS];
@@ -146,7 +149,7 @@ public class BenchmarkDriver {
 
         for (int i = 1; i < sums.length; i++) {
             if (sums[i] != sums[0]) {
-                throw new RuntimeException("Checksum mismatch across trials: " + sums[0] + " vs " + sums[i]);
+                throw new RuntimeException("Checksum mismatch across trials.");
             }
         }
 
@@ -155,27 +158,21 @@ public class BenchmarkDriver {
     }
 
     // -----------------------------
-    // WORKLOADS
+    // WORKLOADS (unchanged)
     // -----------------------------
     private static Result workloadStackBulk(Stack<Integer> s, int ops) throws Exception {
-        resetStack(s);
         int n = ops / 2;
-
         long sum = 0;
         long start = System.nanoTime();
         for (int i = 0; i < n; i++) s.push(i);
         for (int i = 0; i < n; i++) sum += s.pop();
         long end = System.nanoTime();
-
         return new Result(end - start, sum);
     }
 
     private static Result workloadStackMixed(Stack<Integer> s, int ops) throws Exception {
-        resetStack(s);
         Random rng = new Random(SEED);
-
         for (int i = 0; i < 10_000; i++) s.push(rng.nextInt());
-
         long sum = 0;
         long start = System.nanoTime();
         for (int i = 0; i < ops; i++) {
@@ -185,29 +182,22 @@ public class BenchmarkDriver {
             else { if (!s.isEmpty()) sum += s.top(); }
         }
         long end = System.nanoTime();
-
         return new Result(end - start, sum);
     }
 
     private static Result workloadQueueBulk(Queue<Integer> q, int ops) throws Exception {
-        resetQueue(q);
         int n = ops / 2;
-
         long sum = 0;
         long start = System.nanoTime();
         for (int i = 0; i < n; i++) q.enqueue(i);
         for (int i = 0; i < n; i++) sum += q.dequeue();
         long end = System.nanoTime();
-
         return new Result(end - start, sum);
     }
 
     private static Result workloadQueueMixed(Queue<Integer> q, int ops) throws Exception {
-        resetQueue(q);
         Random rng = new Random(SEED);
-
         for (int i = 0; i < 10_000; i++) q.enqueue(rng.nextInt());
-
         long sum = 0;
         long start = System.nanoTime();
         for (int i = 0; i < ops; i++) {
@@ -217,17 +207,13 @@ public class BenchmarkDriver {
             else { if (!q.isEmpty()) sum += q.front(); }
         }
         long end = System.nanoTime();
-
         return new Result(end - start, sum);
     }
 
     private static Result workloadPQBulk(PriorityQueue<Integer> pq, int ops, boolean skewed) throws Exception {
-        resetPQ(pq);
         Random rng = new Random(SEED);
-
         int n = ops / 2;
         long sum = 0;
-
         long start = System.nanoTime();
         for (int i = 0; i < n; i++) {
             int pr = skewed ? skewedPriority(rng) : rng.nextInt(10_000);
@@ -235,19 +221,15 @@ public class BenchmarkDriver {
         }
         for (int i = 0; i < n; i++) sum += pq.dequeue();
         long end = System.nanoTime();
-
         return new Result(end - start, sum);
     }
 
     private static Result workloadPQMixed(PriorityQueue<Integer> pq, int ops, boolean skewed) throws Exception {
-        resetPQ(pq);
         Random rng = new Random(SEED);
-
         for (int i = 0; i < 10_000; i++) {
             int pr = skewed ? skewedPriority(rng) : rng.nextInt(10_000);
             pq.enqueue(pr, rng.nextInt());
         }
-
         long sum = 0;
         long start = System.nanoTime();
         for (int i = 0; i < ops; i++) {
@@ -262,34 +244,15 @@ public class BenchmarkDriver {
             }
         }
         long end = System.nanoTime();
-
         return new Result(end - start, sum);
     }
 
     private static int skewedPriority(Random rng) {
         int r = rng.nextInt(100);
-        if (r < 90) return rng.nextInt(11); // 0..10
-        return 11 + rng.nextInt(100_000 - 11 + 1);
+        if (r < 90) return rng.nextInt(11);
+        return 11 + rng.nextInt(100_000 - 10);
     }
 
-    // -----------------------------
-    // RESET HELPERS
-    // -----------------------------
-    private static void resetStack(Stack<Integer> s) throws Exception {
-        while (!s.isEmpty()) s.pop();
-    }
-
-    private static void resetQueue(Queue<Integer> q) throws Exception {
-        while (!q.isEmpty()) q.dequeue();
-    }
-
-    private static void resetPQ(PriorityQueue<Integer> pq) throws Exception {
-        while (!pq.isEmpty()) pq.dequeue();
-    }
-
-    // -----------------------------
-    // SMALL TYPES
-    // -----------------------------
     private interface BenchRun {
         Result run(boolean warmup) throws Exception;
     }
